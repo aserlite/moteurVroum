@@ -6,18 +6,19 @@ export class ProjectLoader {
         this.appElement = document.getElementById(appElementId);
         this.canvasElementId = canvasElementId;
         this.engine = null;
+        
+        // Vite va injecter les fonctions d'import statiques ici au moment du build
+        this.projectModules = import.meta.glob('/src/projects/*.js');
     }
 
     async discoverAndLoad() {
-        const projectModules = import.meta.glob('/src/projects/*.js');
-        
         const urlParams = new URLSearchParams(window.location.search);
         const sharedProject = urlParams.get('p');
         const sharedData = urlParams.get('d');
 
         if (sharedProject) {
             let targetPath = null;
-            for (const path in projectModules) {
+            for (const path in this.projectModules) {
                 if (path.includes(`${sharedProject}.js`)) {
                     targetPath = path;
                     break;
@@ -52,7 +53,7 @@ export class ProjectLoader {
 
         const projectList = this.appElement.querySelector('#project-list');
 
-        for (const path in projectModules) {
+        for (const path in this.projectModules) {
             const fileName = path.split('/').pop();
             const projectName = fileName.replace('.js', '');
 
@@ -64,25 +65,39 @@ export class ProjectLoader {
     }
 
     async launchProject(path, projectName, initialGridData = null) {
-        const module = await import(path);
-        const projectClass = module[projectName];
-
-        if (!projectClass) {
-            console.error(`La classe ${projectName} n'a pas été trouvée dans ${path}`);
-            return;
+        // En prod, this.projectModules[path] est une fonction qui retourne une Promesse d'import
+        // En dev, on pourrait utiliser import() classique, mais this.projectModules[path]() gère les deux.
+        const importFn = this.projectModules[path];
+        
+        if (!importFn) {
+             console.error(`Le projet ${path} n'est pas enregistré dans Vite.`);
+             return;
         }
 
-        this.appElement.style.display = 'none';
-        
-        this.engine = new Core(this.canvasElementId);
-        this.engine.loadProject(new projectClass(), projectName, initialGridData);
-        this.engine.start();
-        
-        if (!initialGridData) {
-            const url = new URL(window.location.href);
-            url.searchParams.set('p', projectName);
-            url.searchParams.delete('d');
-            window.history.replaceState({}, document.title, url.toString());
+        try {
+            // Appelle la fonction générée par Vite pour récupérer le module
+            const module = await importFn();
+            const projectClass = module[projectName];
+
+            if (!projectClass) {
+                console.error(`La classe ${projectName} n'a pas été trouvée dans ${path}`);
+                return;
+            }
+
+            this.appElement.style.display = 'none';
+            
+            this.engine = new Core(this.canvasElementId);
+            this.engine.loadProject(new projectClass(), projectName, initialGridData);
+            this.engine.start();
+            
+            if (!initialGridData) {
+                const url = new URL(window.location.href);
+                url.searchParams.set('p', projectName);
+                url.searchParams.delete('d');
+                window.history.replaceState({}, document.title, url.toString());
+            }
+        } catch (e) {
+            console.error("Erreur lors du chargement dynamique du projet :", e);
         }
     }
 }
