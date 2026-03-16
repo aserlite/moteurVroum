@@ -35,7 +35,7 @@ export class SandSimulation {
         engine.debugDisplay.setCustomData('Projet', 'Falling Sand Physics');
         engine.debugDisplay.setCustomData('Déplacement', 'Shift + Clic Gauche (Pinceau)');
         engine.debugDisplay.setCustomData('Palette', 'Touche C');
-        
+
         engine.timeControl.setTPS(60);
 
         engine.colorPalette.colors = this.paletteColors;
@@ -58,7 +58,7 @@ export class SandSimulation {
     getMaterialFromColor(colorObj) {
         if (!colorObj) return null;
         const colorHex = typeof colorObj === 'string' ? colorObj : colorObj.color;
-        
+
         for (const mat of Object.values(this.materials)) {
             if (mat.color === colorHex) return mat;
         }
@@ -76,7 +76,7 @@ export class SandSimulation {
             const worldPos = camera.screenToWorld(mouseState.screenX, mouseState.screenY);
             const centerX = Math.floor(worldPos.x / cellSize);
             const centerY = Math.floor(worldPos.y / cellSize);
-            
+
             const brushSize = 2;
             const material = this.getMaterialFromColor(colorPalette.selectedColor);
 
@@ -91,6 +91,32 @@ export class SandSimulation {
                                 grid.setCell(centerX + dx, centerY + dy, { ...material, tickCounter: 0 });
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    triggerExplosion(centerX, centerY, radius, engine, updatedCells) {
+        for (let ex = -radius; ex <= radius; ex++) {
+            for (let ey = -radius; ey <= radius; ey++) {
+                if (ex * ex + ey * ey <= radius * radius) {
+                    const targetX = centerX + ex;
+                    const targetY = centerY + ey;
+                    const c = engine.grid.getCell(targetX, targetY);
+
+                    if (!c || (c.type !== 'KILL' && c.type !== 'GENERATOR')) {
+                        const rand = Math.random();
+
+                        if (rand < 0.15) {
+                            engine.grid.setCell(targetX, targetY, { ...this.materials.EMBER, health: 20 + Math.random() * 30 });
+                        } else if (rand < 0.4) {
+                            engine.grid.setCell(targetX, targetY, { ...this.materials.STEAM, life: 60 + Math.random() * 40 });
+                        } else {
+                            engine.grid.setCell(targetX, targetY, null);
+                        }
+
+                        updatedCells.add(`${targetX},${targetY}`);
                     }
                 }
             }
@@ -147,9 +173,9 @@ export class SandSimulation {
             const canDisplace = (targetData, sourceData) => {
                 if (!targetData) return true;
                 if (targetData.type === 'SOLID' || targetData.type === 'WOOD') return false;
-                
+
                 if (sourceData.type === 'GAS') {
-                     return targetData.density < sourceData.density;
+                    return targetData.density < sourceData.density;
                 }
                 return targetData.density < sourceData.density;
             };
@@ -160,7 +186,7 @@ export class SandSimulation {
                     engine.grid.setCell(x, y, null);
                     continue;
                 }
-                
+
                 const up = engine.grid.getCell(x, y - 1);
                 if (canDisplace(up, data)) {
                     swap(x, y - 1);
@@ -193,27 +219,15 @@ export class SandSimulation {
                         if (dx === 0 && dy === 0) continue;
                         const neighbor = engine.grid.getCell(x + dx, y + dy);
                         if (!neighbor) continue;
-                        
+
                         if (neighbor.type === 'WOOD' && Math.random() < neighbor.flammability) {
                             neighbor.type = 'EMBER';
                             neighbor.color = this.materials.EMBER.color;
                             neighbor.health = this.materials.WOOD.health;
                         }
-                        
+
                         if (neighbor.type === 'SAND' && neighbor.color === this.materials.GUNPOWDER.color) {
-                            const radius = 3;
-                            for(let ex = -radius; ex <= radius; ex++) {
-                                for(let ey = -radius; ey <= radius; ey++) {
-                                    if(ex*ex + ey*ey <= radius*radius) {
-                                        const c = engine.grid.getCell(x + ex, y + ey);
-                                        if(!c || c.type !== 'KILL') {
-                                             engine.grid.setCell(x + ex, y + ey, null);
-                                             updatedCells.add(`${x+ex},${y+ey}`);
-                                        }
-                                    }
-                                }
-                            }
-                            engine.grid.setCell(x, y, { ...this.materials.EMBER });
+                            this.triggerExplosion(x + dx, y + dy, 6, engine, updatedCells);
                             break;
                         }
                     }
@@ -239,9 +253,9 @@ export class SandSimulation {
                             neighbor.health = this.materials.WOOD.health;
                         }
                         if (neighbor.type === 'SAND' && neighbor.color === this.materials.GUNPOWDER.color) {
-                            neighbor.type = 'EMBER';
-                            neighbor.color = this.materials.EMBER.color;
-                            neighbor.health = 5; // Explosion rapide
+                            this.triggerExplosion(x + dx, y + dy, 6, engine, updatedCells);
+                            interacted = true;
+                            break;
                         }
                     }
                 }
@@ -261,7 +275,7 @@ export class SandSimulation {
                     else if (canDisplace(dRight, data)) { swap(x + dir, y + 1); }
                 }
             }
-            if (data.type === 'GENERATOR') {
+            else if (data.type === 'GENERATOR') {
                 const down = engine.grid.getCell(x, y + 1);
 
                 if (!down) {
