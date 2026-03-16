@@ -36,7 +36,9 @@ export class Core {
         this.shareProject = this.shareProject.bind(this);
         this.resetProject = this.resetProject.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
-        this.colorPalette.toggle();
+
+        this.colorPalette.enabled = true;
+        this.colorPalette.isOpen = true;
 
         window.addEventListener('resize', this.resize);
         window.addEventListener('keydown', this.handleKeyDown);

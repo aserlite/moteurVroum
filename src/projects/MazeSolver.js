@@ -23,9 +23,7 @@ export class MazeSolver {
         engine.timeControl.setTPS(30);
 
         engine.colorPalette.colors = [];
-        if (engine.colorPalette.visible && engine.colorPalette.toggle) {
-            engine.colorPalette.toggle();
-        }
+        engine.colorPalette.enabled = false;
 
         if (!dataLoaded) {
             this.generateMaze(engine.grid);

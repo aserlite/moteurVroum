@@ -77,7 +77,7 @@ export class MapGenerator {
         engine.debugDisplay.setCustomData('Projet', 'Générateur Procédural');
         engine.debugDisplay.setCustomData('Déplacement', 'Shift + Clic Gauche (Pan)');
         engine.colorPalette.colors = [];
-        engine.colorPalette.toggle();
+        engine.colorPalette.enabled = false;
 
         engine.debugDisplay.removeCustomData('Outil');
         if (!dataLoaded) {

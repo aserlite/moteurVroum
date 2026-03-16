@@ -1,6 +1,7 @@
 export class ColorPalette {
     constructor() {
         this.isOpen = false;
+        this.enabled = true;
         this.colors = [
             { color: '#ffffff', name: 'Blanc' },
             { color: '#ff0000', name: 'Rouge' },
@@ -18,6 +19,7 @@ export class ColorPalette {
     }
 
     toggle() {
+        if (!this.enabled) return;
         this.isOpen = !this.isOpen;
     }
 
@@ -34,7 +36,7 @@ export class ColorPalette {
     }
 
     handleClick(screenX, screenY) {
-        if (!this.isOpen) return false;
+        if (!this.enabled || !this.isOpen) return false;
 
         const { x, y, width, height } = this.getBounds();
         if (screenX < x || screenX > x + width || screenY < y || screenY > y + height) {
@@ -67,7 +69,7 @@ export class ColorPalette {
     }
 
     render(ctx) {
-        if (!this.isOpen) return;
+        if (!this.enabled || !this.isOpen) return;
 
         const { x, y, width, height } = this.getBounds();
         const cols = 5;
