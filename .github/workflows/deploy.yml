@@ -37,8 +37,6 @@ jobs:
 
       - name: Build du projet (Vite)
         run: npm run build
-        env:
-          # VITE_BASE_URL: /moteur/
 
       - name: Configuration des pages GitHub
         uses: actions/configure-pages@v4
