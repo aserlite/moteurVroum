@@ -4,7 +4,6 @@ export class Profiler {
         this.lastFpsTime = performance.now();
         this.fps = 0;
         
-        // Temps d'exécution du onTick (en ms)
         this.tickTime = 0;
         this.renderTime = 0;
     }
@@ -39,7 +38,6 @@ export class Profiler {
         ctx.save();
         ctx.resetTransform();
 
-        // Calcul des statistiques de la grille
         let activeChunks = grid.chunks.size;
         let activeCells = 0;
         for (const chunk of grid.chunks.values()) {
@@ -59,10 +57,9 @@ export class Profiler {
         const boxWidth = 140;
         const boxHeight = lines.length * lineHeight + padding * 2;
         
-        const boxX = ctx.canvas.width - boxWidth - 10; // En haut à droite
+        const boxX = ctx.canvas.width - boxWidth - 10;
         const boxY = 10;
 
-        // Couleur de fond basée sur les FPS (rouge si < 30)
         ctx.fillStyle = this.fps > 0 && this.fps < 30 ? 'rgba(100, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.7)';
         ctx.strokeStyle = '#555';
         ctx.lineWidth = 1;
@@ -77,7 +74,6 @@ export class Profiler {
         ctx.textBaseline = 'top';
         
         for (let i = 0; i < lines.length; i++) {
-            // Mettre en évidence les temps longs
             if (i === 1 && this.tickTime > 16) ctx.fillStyle = '#ff5555';
             else if (i === 2 && this.renderTime > 16) ctx.fillStyle = '#ff5555';
             else ctx.fillStyle = '#fff';

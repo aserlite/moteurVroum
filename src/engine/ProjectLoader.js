@@ -7,7 +7,6 @@ export class ProjectLoader {
         this.canvasElementId = canvasElementId;
         this.engine = null;
         
-        // Vite va injecter les fonctions d'import statiques ici au moment du build
         this.projectModules = import.meta.glob('/src/projects/*.js');
     }
 
@@ -65,8 +64,6 @@ export class ProjectLoader {
     }
 
     async launchProject(path, projectName, initialGridData = null) {
-        // En prod, this.projectModules[path] est une fonction qui retourne une Promesse d'import
-        // En dev, on pourrait utiliser import() classique, mais this.projectModules[path]() gère les deux.
         const importFn = this.projectModules[path];
         
         if (!importFn) {
@@ -75,7 +72,6 @@ export class ProjectLoader {
         }
 
         try {
-            // Appelle la fonction générée par Vite pour récupérer le module
             const module = await importFn();
             const projectClass = module[projectName];
 

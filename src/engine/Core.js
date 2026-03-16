@@ -29,12 +29,12 @@ export class Core {
         this.projectName = null;
         this.animationFrameId = null;
 
-        // État de visibilité globale des fenêtres de debug/ui
         this.uiVisible = true;
 
         this.resize = this.resize.bind(this);
         this.loop = this.loop.bind(this);
         this.shareProject = this.shareProject.bind(this);
+        this.resetProject = this.resetProject.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
 
         window.addEventListener('resize', this.resize);
@@ -46,7 +46,6 @@ export class Core {
     handleKeyDown(e) {
         if (e.key === 'd' || e.key === 'D') {
             this.uiVisible = !this.uiVisible;
-            // On synchronise le statut de DebugDisplay pour qu'il garde son propre comportement si besoin
             this.debugDisplay.enabled = this.uiVisible; 
         }
         if (e.key === 'c' || e.key === 'C') {
@@ -54,6 +53,9 @@ export class Core {
         }
         if (e.key === 's' || e.key === 'S') {
             this.shareProject();
+        }
+        if (e.key === 'r' || e.key === 'R') {
+            this.resetProject();
         }
         if (e.key === 'Escape') {
             this.quitToMenu();
@@ -98,10 +100,33 @@ export class Core {
         }
 
         this.debugDisplay.setCustomData('Partage', 'Touche S');
+        this.debugDisplay.setCustomData('Reset', 'Touche R');
         this.debugDisplay.setCustomData('Quitter', 'Échap');
         this.debugDisplay.setCustomData('Step', 'Touche N');
         
         this.resize();
+    }
+
+    resetProject() {
+        if (!this.project) return;
+        
+        this.grid.chunks.clear();
+        
+        this.storageManager.clear();
+        
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('d')) {
+            url.searchParams.delete('d');
+            window.history.replaceState({}, document.title, url.toString());
+        }
+
+        this.timeControl.isPaused = true;
+        if (this.project.onInit) {
+            this.project.onInit(this, false);
+        }
+        
+        this.debugDisplay.setCustomData('Reset OK!', '✔');
+        setTimeout(() => this.debugDisplay.removeCustomData('Reset OK!'), 2000);
     }
 
     shareProject() {
@@ -202,7 +227,11 @@ export class Core {
     }
 
     handleInputs() {
-        // Gérer les inputs indépendamment du framerate du jeu
+        if (this.project && typeof this.project.handleInputs === 'function') {
+            this.project.handleInputs(this);
+            return;
+        }
+
         const { mouseState } = this.inputManager;
         const selectedTool = this.colorPalette.selectedColor === null ? 'Gomme' : this.colorPalette.selectedColor;
         this.debugDisplay.setCustomData('Outil', selectedTool);
@@ -228,10 +257,8 @@ export class Core {
 
         this.storageManager.update(time);
 
-        // 1. Toujours gérer les inputs (édition de grille) indépendamment du statut de pause
         this.handleInputs();
 
-        // 2. Mettre à jour la logique du jeu en fonction du TimeControl
         const ticksToRun = this.timeControl.update(dt);
 
         if (this.project && this.project.onTick) {
@@ -242,7 +269,6 @@ export class Core {
             this.profiler.endTick();
         }
 
-        // 3. Rendu
         this.profiler.startRender();
         this.ctx.fillStyle = '#111';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -261,13 +287,10 @@ export class Core {
         this.ctx.restore();
         this.profiler.endRender();
 
-        // Rendu des interfaces par-dessus tout
         const alpha = this.uiVisible ? 1.0 : 0.15;
 
-        // Debug display a déjà sa gestion d'alpha en interne, on lui laisse faire
         this.debugDisplay.render(this.ctx, this.inputManager.mouseState, this.camera, this.cellSize);
         
-        // Appliquer l'alpha aux autres fenêtres
         this.ctx.save();
         this.ctx.globalAlpha = alpha;
         
@@ -276,8 +299,6 @@ export class Core {
         
         this.ctx.restore();
 
-        // La palette reste toujours visible (à l'opacité 1) si elle est ouverte,
-        // car elle ne gêne pas l'écran par défaut.
         this.colorPalette.render(this.ctx);
 
         this.animationFrameId = requestAnimationFrame(this.loop);

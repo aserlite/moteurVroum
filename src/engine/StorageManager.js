@@ -16,7 +16,6 @@ export class StorageManager {
         if (!key) return;
 
         const data = this.engine.grid.serialize();
-        // Ne sauvegarde pas si la grille est vide
         if (data === "[]") {
             localStorage.removeItem(key);
             return;
@@ -25,7 +24,6 @@ export class StorageManager {
         try {
             localStorage.setItem(key, data);
             
-            // Afficher temporairement un retour visuel (très discret)
             this.engine.debugDisplay.setCustomData('Auto-Save', '✔');
             setTimeout(() => this.engine.debugDisplay.removeCustomData('Auto-Save'), 1000);
             
