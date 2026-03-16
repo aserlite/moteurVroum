@@ -239,8 +239,8 @@ export class Core {
         }
 
         const { mouseState } = this.inputManager;
-        const selectedTool = this.colorPalette.selectedColor === null ? 'Gomme' : this.colorPalette.selectedColor;
-        this.debugDisplay.setCustomData('Outil', selectedTool);
+        const selectedToolName = this.colorPalette.selectedColor ? this.colorPalette.getColorName(this.colorPalette.selectedColor) : 'Gomme';
+        this.debugDisplay.setCustomData('Outil', selectedToolName);
 
         if (mouseState.isDown && mouseState.isEditing) {
             const worldPos = this.camera.screenToWorld(mouseState.screenX, mouseState.screenY);
@@ -250,7 +250,7 @@ export class Core {
             if (this.colorPalette.selectedColor === null) {
                 this.grid.setCell(cellX, cellY, null);
             } else {
-                this.grid.setCell(cellX, cellY, { color: this.colorPalette.selectedColor });
+                this.grid.setCell(cellX, cellY, { color: this.colorPalette.getColorValue(this.colorPalette.selectedColor) });
             }
         }
     }

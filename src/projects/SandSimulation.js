@@ -1,22 +1,26 @@
 export class SandSimulation {
     constructor() {
         this.materials = {
-            SAND: { color: '#e6c27a', type: 'SAND', density: 3 },
-            WATER: { color: '#4da6ff', type: 'WATER', density: 1, spreadRate: 5 },
-            STONE: { color: '#888888', type: 'SOLID', density: Infinity },
-            WOOD: { color: '#8b5a2b', type: 'WOOD', density: Infinity, flammability: 0.1, health: 100 },
-            LAVA: { color: '#ff4500', type: 'LAVA', density: 2, spreadRate: 2, flowDelay: 3 },
-            EMBER: { color: '#ff7800', type: 'EMBER', density: 1 },
-            VOID: { color: '#1a1a1a', type: 'KILL', density: 0 }
+            SAND: { name: 'Sable', color: '#e6c27a', type: 'SAND', density: 3 },
+            WATER: { name: 'Eau', color: '#4da6ff', type: 'WATER', density: 1, spreadRate: 5 },
+            STONE: { name: 'Pierre', color: '#888888', type: 'SOLID', density: Infinity },
+            WOOD: { name: 'Bois', color: '#8b5a2b', type: 'WOOD', density: Infinity, flammability: 0.1, health: 100 },
+            LAVA: { name: 'Lave', color: '#ff4500', type: 'LAVA', density: 2, spreadRate: 2, flowDelay: 3 },
+            EMBER: { name: 'Feu', color: '#ff7800', type: 'EMBER', density: 1 },
+            STEAM: { name: 'Vapeur', color: '#dddddd', type: 'GAS', density: -1, life: 100 },
+            GUNPOWDER: { name: 'Poudre', color: '#444444', type: 'SAND', density: 2.5 },
+            VOID: { name: 'Vide', color: '#1a1a1a', type: 'KILL', density: 0 }
         };
 
         this.paletteColors = [
-            this.materials.SAND.color,
-            this.materials.WATER.color,
-            this.materials.LAVA.color,
-            this.materials.STONE.color,
-            this.materials.WOOD.color,
-            this.materials.VOID.color,
+            { color: this.materials.SAND.color, name: 'Sable' },
+            { color: this.materials.WATER.color, name: 'Eau' },
+            { color: this.materials.LAVA.color, name: 'Lave' },
+            { color: this.materials.GUNPOWDER.color, name: 'Poudre' },
+            { color: this.materials.STONE.color, name: 'Pierre' },
+            { color: this.materials.WOOD.color, name: 'Bois' },
+            { color: this.materials.STEAM.color, name: 'Vapeur' },
+            { color: this.materials.VOID.color, name: 'Vide' },
             null
         ];
     }
@@ -45,20 +49,22 @@ export class SandSimulation {
         }
     }
 
-    getMaterialFromColor(color) {
-        if (!color) return null;
+    getMaterialFromColor(colorObj) {
+        if (!colorObj) return null;
+        const colorHex = typeof colorObj === 'string' ? colorObj : colorObj.color;
+        
         for (const mat of Object.values(this.materials)) {
-            if (mat.color === color) return mat;
+            if (mat.color === colorHex) return mat;
         }
-        return { color: color, type: 'SAND', density: 3 };
+        return { name: 'Sable', color: colorHex, type: 'SAND', density: 3 };
     }
 
     handleInputs(engine) {
         const { inputManager, camera, grid, cellSize, colorPalette } = engine;
         const { mouseState } = inputManager;
 
-        const selectedTool = colorPalette.selectedColor === null ? 'Gomme' : colorPalette.selectedColor;
-        engine.debugDisplay.setCustomData('Outil', selectedTool);
+        const selectedToolName = colorPalette.selectedColor ? colorPalette.getColorName(colorPalette.selectedColor) : 'Gomme';
+        engine.debugDisplay.setCustomData('Outil', selectedToolName);
 
         if (mouseState.isDown && mouseState.isEditing) {
             const worldPos = camera.screenToWorld(mouseState.screenX, mouseState.screenY);
@@ -103,7 +109,14 @@ export class SandSimulation {
         }
 
         cellsToUpdate.sort((a, b) => {
-            if (a.y !== b.y) return b.y - a.y;
+            if (a.y !== b.y) {
+                const isGasA = a.data.type === 'GAS';
+                const isGasB = b.data.type === 'GAS';
+                if (isGasA && !isGasB) return -1;
+                if (!isGasA && isGasB) return 1;
+                if (isGasA && isGasB) return a.y - b.y;
+                return b.y - a.y;
+            }
             return Math.random() - 0.5;
         });
 
@@ -128,8 +141,40 @@ export class SandSimulation {
             const canDisplace = (targetData, sourceData) => {
                 if (!targetData) return true;
                 if (targetData.type === 'SOLID' || targetData.type === 'WOOD') return false;
+                
+                if (sourceData.type === 'GAS') {
+                     return targetData.density < sourceData.density;
+                }
                 return targetData.density < sourceData.density;
             };
+
+            if (data.type === 'GAS') {
+                data.life = (data.life || 100) - 1;
+                if (data.life <= 0) {
+                    engine.grid.setCell(x, y, null);
+                    continue;
+                }
+                
+                const up = engine.grid.getCell(x, y - 1);
+                if (canDisplace(up, data)) {
+                    swap(x, y - 1);
+                } else {
+                    const dir = Math.random() > 0.5 ? 1 : -1;
+                    const upLeft = engine.grid.getCell(x - dir, y - 1);
+                    const upRight = engine.grid.getCell(x + dir, y - 1);
+                    if (canDisplace(upLeft, data)) {
+                        swap(x - dir, y - 1);
+                    } else if (canDisplace(upRight, data)) {
+                        swap(x + dir, y - 1);
+                    } else {
+                        const side = engine.grid.getCell(x + dir, y);
+                        if(canDisplace(side, data)) {
+                            swap(x + dir, y);
+                        }
+                    }
+                }
+                continue;
+            }
 
             if (data.type === 'EMBER') {
                 data.health = (data.health || 100) - 1;
@@ -141,10 +186,29 @@ export class SandSimulation {
                     for (let dy = -1; dy <= 1; dy++) {
                         if (dx === 0 && dy === 0) continue;
                         const neighbor = engine.grid.getCell(x + dx, y + dy);
-                        if (neighbor && neighbor.type === 'WOOD' && Math.random() < neighbor.flammability) {
+                        if (!neighbor) continue;
+                        
+                        if (neighbor.type === 'WOOD' && Math.random() < neighbor.flammability) {
                             neighbor.type = 'EMBER';
                             neighbor.color = this.materials.EMBER.color;
                             neighbor.health = this.materials.WOOD.health;
+                        }
+                        
+                        if (neighbor.type === 'SAND' && neighbor.color === this.materials.GUNPOWDER.color) {
+                            const radius = 3;
+                            for(let ex = -radius; ex <= radius; ex++) {
+                                for(let ey = -radius; ey <= radius; ey++) {
+                                    if(ex*ex + ey*ey <= radius*radius) {
+                                        const c = engine.grid.getCell(x + ex, y + ey);
+                                        if(!c || c.type !== 'KILL') {
+                                             engine.grid.setCell(x + ex, y + ey, null);
+                                             updatedCells.add(`${x+ex},${y+ey}`);
+                                        }
+                                    }
+                                }
+                            }
+                            engine.grid.setCell(x, y, { ...this.materials.EMBER });
+                            break;
                         }
                     }
                 }
@@ -160,12 +224,18 @@ export class SandSimulation {
                     if (data.type === 'LAVA') {
                         if (neighbor.type === 'WATER') {
                             engine.grid.setCell(x, y, { ...this.materials.STONE });
+                            engine.grid.setCell(x + dx, y + dy, { ...this.materials.STEAM });
                             interacted = true; break;
                         }
                         if (neighbor.type === 'WOOD' && Math.random() < 0.5) {
                             neighbor.type = 'EMBER';
                             neighbor.color = this.materials.EMBER.color;
                             neighbor.health = this.materials.WOOD.health;
+                        }
+                        if (neighbor.type === 'SAND' && neighbor.color === this.materials.GUNPOWDER.color) {
+                            neighbor.type = 'EMBER';
+                            neighbor.color = this.materials.EMBER.color;
+                            neighbor.health = 5; // Explosion rapide
                         }
                     }
                 }
