@@ -10,6 +10,8 @@ export class SandSimulation {
             STEAM: { name: 'Vapeur', color: '#dddddd', type: 'GAS', density: -1, life: 100 },
             GUNPOWDER: { name: 'Poudre', color: '#444444', type: 'SAND', density: 2.5 },
             WATER_GEN: { name: 'Source Eau', color: '#0033cc', type: 'GENERATOR', generates: 'WATER', density: Infinity },
+            LAVA_GEN: { name: 'Source Lave', color: '#681d00', type: 'GENERATOR', generates: 'LAVA', density: Infinity },
+            POWDER_GEN: { name: 'Source Poudre', color: '#222222', type: 'GENERATOR', generates: 'GUNPOWDER', density: Infinity },
             VOID: { name: 'Vide', color: '#1a1a1a', type: 'KILL', density: 0 }
         };
 
@@ -22,6 +24,8 @@ export class SandSimulation {
             { color: this.materials.WOOD.color, name: 'Bois' },
             { color: this.materials.STEAM.color, name: 'Vapeur' },
             { color: this.materials.WATER_GEN.color, name: 'Source Eau' },
+            { color: this.materials.LAVA_GEN.color, name: 'Source Lave' },
+            { color: this.materials.POWDER_GEN.color, name: 'Source Poudre' },
             { color: this.materials.VOID.color, name: 'Vide' },
             null
         ];
