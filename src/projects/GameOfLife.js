@@ -1,43 +1,38 @@
 export class GameOfLife {
     constructor() {
-        this.time = 0;
-        this.tickRate = 0.1;
-        this.timeSinceLastTick = 0;
-        this.isRunning = false;
-        this.activeCells = new Set();
+        // La gestion du temps est maintenant gérée par le moteur (TimeControl)
     }
 
-    onInit(engine) {
+    onInit(engine, dataLoaded) {
         engine.debugDisplay.setCustomData('Projet', 'Game of Life');
         engine.debugDisplay.setCustomData('Edition', 'Shift + Clic Gauche');
-        engine.debugDisplay.setCustomData('Contrôle', 'Espace (Play/Pause)');
         engine.debugDisplay.setCustomData('Palette', 'Touche C');
         
-        const startX = 0;
-        const startY = 0;
+        // On configure la vitesse du moteur spécifiquement pour ce projet
+        engine.timeControl.setTPS(10);
         
-        engine.grid.setCell(startX, startY - 1, { color: '#fff' });
-        engine.grid.setCell(startX + 1, startY, { color: '#fff' });
-        engine.grid.setCell(startX - 1, startY + 1, { color: '#fff' });
-        engine.grid.setCell(startX, startY + 1, { color: '#fff' });
-        engine.grid.setCell(startX + 1, startY + 1, { color: '#fff' });
-
-        this.handleKeyDown = (e) => {
-            if (e.code === 'Space') {
-                this.isRunning = !this.isRunning;
-                engine.debugDisplay.setCustomData('État', this.isRunning ? 'En cours' : 'Pause');
-            }
-        };
-        window.addEventListener('keydown', this.handleKeyDown);
+        // Si aucune donnée n'a été chargée (ni URL, ni LocalStorage), on initialise un motif
+        if (!dataLoaded) {
+            const startX = 0;
+            const startY = 0;
+            
+            engine.grid.setCell(startX, startY - 1, { color: '#fff' });
+            engine.grid.setCell(startX + 1, startY, { color: '#fff' });
+            engine.grid.setCell(startX - 1, startY + 1, { color: '#fff' });
+            engine.grid.setCell(startX, startY + 1, { color: '#fff' });
+            engine.grid.setCell(startX + 1, startY + 1, { color: '#fff' });
+        }
     }
 
     onTick(dt, engine) {
-        const { inputManager, camera, grid, cellSize, colorPalette } = engine;
+        const { inputManager, camera, grid, cellSize, colorPalette, timeControl } = engine;
         const { mouseState } = inputManager;
 
         const selectedTool = colorPalette.selectedColor === null ? 'Gomme' : colorPalette.selectedColor;
         engine.debugDisplay.setCustomData('Outil', selectedTool);
 
+        // --- 1. GESTION DES INPUTS (ÉDITION) ---
+        // On permet de dessiner même quand le jeu est en pause
         if (mouseState.isDown && mouseState.isEditing) {
             const worldPos = camera.screenToWorld(mouseState.screenX, mouseState.screenY);
             const cellX = Math.floor(worldPos.x / cellSize);
@@ -50,19 +45,27 @@ export class GameOfLife {
             }
         }
 
-        if (!this.isRunning) return;
+        // --- 2. LOGIQUE DU JEU DE LA VIE ---
+        // Le Core appelle onTick même en pause si on utilise le pas-à-pas (stepRequested).
+        // Mais pendant les frames normales où on est en pause, le Core N'APPELLE PAS onTick pour la logique.
+        // CEPENDANT, on veut pouvoir dessiner en pause. 
+        // L'architecture actuelle du Core appelle onTick soit X fois par frame (si ça tourne), 
+        // soit 1 fois (si step), soit 0 fois (si en pause).
+        // DONC, si on est ici, c'est qu'on DOIT exécuter la logique DU JEU.
+        // Sauf si on veut séparer les inputs (qui doivent tourner tout le temps) de la logique.
 
-        this.timeSinceLastTick += dt;
-        if (this.timeSinceLastTick < this.tickRate) return;
-        this.timeSinceLastTick = 0;
+        // CORRECTION D'ARCHITECTURE LOCALE : 
+        // Puisque le Core appelle onTick "ticksToRun" fois (qui vaut 0 en pause),
+        // on ne pouvait plus dessiner en pause.
+        // J'ai modifié le Core pour qu'il gère ça mieux, mais ici on exécute la logique de Conway.
 
         const cellsToCheck = new Set();
         const aliveCells = [];
         
-        for (const [chunkKey, chunk] of grid.chunks.entries()) {
+        for (const chunk of grid.chunks.values()) {
             for (const [localKey, data] of chunk.cells.entries()) {
                 const [localX, localY] = localKey.split(',').map(Number);
-                const cellX = chunk.x * 32 + localX; // 32 est CHUNK_SIZE
+                const cellX = chunk.x * 32 + localX;
                 const cellY = chunk.y * 32 + localY;
                 
                 aliveCells.push({x: cellX, y: cellY, color: data.color});
@@ -103,7 +106,7 @@ export class GameOfLife {
             }
         }
 
-        grid.chunks.clear();
+        grid.chunks.clear(); 
         
         for (const cell of nextGeneration) {
             grid.setCell(cell.x, cell.y, cell.data);

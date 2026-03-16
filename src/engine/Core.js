@@ -3,6 +3,9 @@ import { InputManager } from './InputManager.js';
 import { DebugDisplay } from './DebugDisplay.js';
 import { ColorPalette } from './ColorPalette.js';
 import { Grid, CHUNK_SIZE } from './Grid.js';
+import { TimeControl } from './TimeControl.js';
+import { Profiler } from './Profiler.js';
+import { StorageManager } from './StorageManager.js';
 
 export class Core {
     constructor(canvasId) {
@@ -14,6 +17,10 @@ export class Core {
         this.debugDisplay = new DebugDisplay();
         this.colorPalette = new ColorPalette();
         this.grid = new Grid();
+        
+        this.timeControl = new TimeControl();
+        this.profiler = new Profiler();
+        this.storageManager = new StorageManager(this);
         
         this.cellSize = 32;
 
@@ -46,6 +53,13 @@ export class Core {
         if (e.key === 'Escape') {
             this.quitToMenu();
         }
+        if (e.code === 'Space') {
+            this.timeControl.togglePause();
+            e.preventDefault(); 
+        }
+        if (e.key === 'n' || e.key === 'N') {
+            this.timeControl.step();
+        }
     }
 
     resize() {
@@ -65,16 +79,22 @@ export class Core {
         this.project = project;
         this.projectName = projectName;
         
+        let dataLoaded = false;
+        
         if (initialGridData) {
             this.grid.deserialize(initialGridData);
+            dataLoaded = true;
+        } else {
+            dataLoaded = this.storageManager.load();
         }
 
         if (this.project.onInit) {
-            this.project.onInit(this);
+            this.project.onInit(this, dataLoaded);
         }
 
         this.debugDisplay.setCustomData('Partage', 'Touche S');
         this.debugDisplay.setCustomData('Quitter', 'Échap');
+        this.debugDisplay.setCustomData('Step', 'Touche N');
         
         this.resize();
     }
@@ -101,6 +121,8 @@ export class Core {
     }
 
     quitToMenu() {
+        this.storageManager.save();
+
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
         }
@@ -174,14 +196,49 @@ export class Core {
         };
     }
 
+    handleInputs() {
+        // Gérer les inputs indépendamment du framerate du jeu
+        const { mouseState } = this.inputManager;
+        const selectedTool = this.colorPalette.selectedColor === null ? 'Gomme' : this.colorPalette.selectedColor;
+        this.debugDisplay.setCustomData('Outil', selectedTool);
+
+        if (mouseState.isDown && mouseState.isEditing) {
+            const worldPos = this.camera.screenToWorld(mouseState.screenX, mouseState.screenY);
+            const cellX = Math.floor(worldPos.x / this.cellSize);
+            const cellY = Math.floor(worldPos.y / this.cellSize);
+            
+            if (this.colorPalette.selectedColor === null) {
+                this.grid.setCell(cellX, cellY, null);
+            } else {
+                this.grid.setCell(cellX, cellY, { color: this.colorPalette.selectedColor });
+            }
+        }
+    }
+
     loop(time) {
+        this.profiler.update();
+        
         const dt = (time - this.lastTime) / 1000;
         this.lastTime = time;
 
+        this.storageManager.update(time);
+
+        // 1. Toujours gérer les inputs (édition de grille) indépendamment du statut de pause
+        this.handleInputs();
+
+        // 2. Mettre à jour la logique du jeu en fonction du TimeControl
+        const ticksToRun = this.timeControl.update(dt);
+
         if (this.project && this.project.onTick) {
-            this.project.onTick(dt, this);
+            this.profiler.startTick();
+            for (let i = 0; i < ticksToRun; i++) {
+                this.project.onTick(this.timeControl.tickInterval, this);
+            }
+            this.profiler.endTick();
         }
 
+        // 3. Rendu
+        this.profiler.startRender();
         this.ctx.fillStyle = '#111';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -197,8 +254,11 @@ export class Core {
         }
 
         this.ctx.restore();
+        this.profiler.endRender();
 
         this.debugDisplay.render(this.ctx, this.inputManager.mouseState, this.camera, this.cellSize);
+        this.profiler.render(this.ctx, this.grid);
+        this.timeControl.render(this.ctx);
         this.colorPalette.render(this.ctx);
 
         this.animationFrameId = requestAnimationFrame(this.loop);

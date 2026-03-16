@@ -16,23 +16,8 @@ export class GridProject {
         const animY = Math.floor(Math.cos(this.time * 2) * 5);
         engine.grid.setCell(animX, animY, { color: 'cyan' });
 
-        const { inputManager, camera, grid, cellSize, colorPalette } = engine;
-        const { mouseState } = inputManager;
-
-        const selectedTool = colorPalette.selectedColor === null ? 'Gomme' : colorPalette.selectedColor;
-        engine.debugDisplay.setCustomData('Outil', selectedTool);
-
-        if (mouseState.isDown && mouseState.isEditing) {
-            const worldPos = camera.screenToWorld(mouseState.screenX, mouseState.screenY);
-            const cellX = Math.floor(worldPos.x / cellSize);
-            const cellY = Math.floor(worldPos.y / cellSize);
-            
-            if (colorPalette.selectedColor === null) {
-                grid.setCell(cellX, cellY, null);
-            } else {
-                grid.setCell(cellX, cellY, { color: colorPalette.selectedColor });
-            }
-        }
+        // L'édition à la souris est maintenant gérée par le Core pour être indépendante du framerate du jeu !
+        // Plus besoin de le refaire ici.
     }
 
     onRender(ctx, camera) {
