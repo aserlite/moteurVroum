@@ -11,21 +11,23 @@ export class SandSimulation {
             GUNPOWDER: { name: 'Poudre', color: '#444444', type: 'SAND', density: 2.5 },
             WATER_GEN: { name: 'Source Eau', color: '#0033cc', type: 'GENERATOR', generates: 'WATER', density: Infinity },
             LAVA_GEN: { name: 'Source Lave', color: '#681d00', type: 'GENERATOR', generates: 'LAVA', density: Infinity },
+            SAND_GEN: { name: 'Source Sable', color: '#887549', type: 'GENERATOR', generates: 'SAND', density: Infinity },
             POWDER_GEN: { name: 'Source Poudre', color: '#222222', type: 'GENERATOR', generates: 'GUNPOWDER', density: Infinity },
             VOID: { name: 'Vide', color: '#1a1a1a', type: 'KILL', density: 0 }
         };
 
         this.paletteColors = [
+            { color: this.materials.STONE.color, name: 'Pierre' },
             { color: this.materials.SAND.color, name: 'Sable' },
             { color: this.materials.WATER.color, name: 'Eau' },
             { color: this.materials.LAVA.color, name: 'Lave' },
             { color: this.materials.GUNPOWDER.color, name: 'Poudre' },
-            { color: this.materials.STONE.color, name: 'Pierre' },
             { color: this.materials.WOOD.color, name: 'Bois' },
-            { color: this.materials.STEAM.color, name: 'Vapeur' },
+            { color: this.materials.SAND_GEN.color, name: 'Source Sable' },
             { color: this.materials.WATER_GEN.color, name: 'Source Eau' },
             { color: this.materials.LAVA_GEN.color, name: 'Source Lave' },
             { color: this.materials.POWDER_GEN.color, name: 'Source Poudre' },
+            { color: this.materials.STEAM.color, name: 'Vapeur' },
             { color: this.materials.VOID.color, name: 'Vide' },
             null
         ];
