@@ -4,7 +4,7 @@ export class GameOfLife {
 
     onInit(engine, dataLoaded) {
         engine.debugDisplay.setCustomData('Projet', 'Game of Life');
-        engine.debugDisplay.setCustomData('Edition', 'Shift + Clic Gauche');
+        engine.debugDisplay.setCustomData('Déplacement', 'Shift + Clic Gauche');
         engine.debugDisplay.setCustomData('Palette', 'Touche C');
         
         engine.timeControl.setTPS(10);

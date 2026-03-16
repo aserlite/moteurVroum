@@ -45,9 +45,9 @@ export class InputManager {
         this.mouseState.lastScreenY = event.clientY;
 
         if (event.shiftKey) {
-            this.mouseState.isEditing = true;
-        } else {
             this.mouseState.isPanning = true;
+        } else {
+            this.mouseState.isEditing = true;
         }
     }
 

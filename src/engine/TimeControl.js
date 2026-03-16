@@ -169,7 +169,7 @@ export class TimeControl {
 
         ctx.fillStyle = '#aaa';
         ctx.font = '11px monospace';
-        ctx.fillText(`(Espace: Play/Pause | N: Step)`, bounds.x + bounds.padding, bounds.y + bounds.height - bounds.padding - 10);
+        ctx.fillText(`(Espace: Play | N: Step)`, bounds.x + bounds.padding, bounds.y + bounds.height - bounds.padding - 10);
 
         ctx.restore();
     }

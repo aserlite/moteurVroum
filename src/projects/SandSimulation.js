@@ -27,7 +27,7 @@ export class SandSimulation {
 
     onInit(engine, dataLoaded) {
         engine.debugDisplay.setCustomData('Projet', 'Falling Sand Physics');
-        engine.debugDisplay.setCustomData('Edition', 'Shift + Clic Gauche (Pinceau)');
+        engine.debugDisplay.setCustomData('Déplacement', 'Shift + Clic Gauche (Pinceau)');
         engine.debugDisplay.setCustomData('Palette', 'Touche C');
         
         engine.timeControl.setTPS(60);
