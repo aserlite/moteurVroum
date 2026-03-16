@@ -29,6 +29,9 @@ export class Core {
         this.projectName = null;
         this.animationFrameId = null;
 
+        // État de visibilité globale des fenêtres de debug/ui
+        this.uiVisible = true;
+
         this.resize = this.resize.bind(this);
         this.loop = this.loop.bind(this);
         this.shareProject = this.shareProject.bind(this);
@@ -42,7 +45,9 @@ export class Core {
 
     handleKeyDown(e) {
         if (e.key === 'd' || e.key === 'D') {
-            this.debugDisplay.toggle();
+            this.uiVisible = !this.uiVisible;
+            // On synchronise le statut de DebugDisplay pour qu'il garde son propre comportement si besoin
+            this.debugDisplay.enabled = this.uiVisible; 
         }
         if (e.key === 'c' || e.key === 'C') {
             this.colorPalette.toggle();
@@ -256,9 +261,23 @@ export class Core {
         this.ctx.restore();
         this.profiler.endRender();
 
+        // Rendu des interfaces par-dessus tout
+        const alpha = this.uiVisible ? 1.0 : 0.15;
+
+        // Debug display a déjà sa gestion d'alpha en interne, on lui laisse faire
         this.debugDisplay.render(this.ctx, this.inputManager.mouseState, this.camera, this.cellSize);
+        
+        // Appliquer l'alpha aux autres fenêtres
+        this.ctx.save();
+        this.ctx.globalAlpha = alpha;
+        
         this.profiler.render(this.ctx, this.grid);
         this.timeControl.render(this.ctx);
+        
+        this.ctx.restore();
+
+        // La palette reste toujours visible (à l'opacité 1) si elle est ouverte,
+        // car elle ne gêne pas l'écran par défaut.
         this.colorPalette.render(this.ctx);
 
         this.animationFrameId = requestAnimationFrame(this.loop);
