@@ -5,48 +5,60 @@
  */
 export class BaseRule {
     constructor() {
-        // Initialisez ici les variables d'état de votre projet
-        // ex: this.time = 0;
+        // Initialisez ici les variables d'état, dictionnaires ou palettes
+        // ex: this.materials = { ... };
     }
 
     /**
-     * Appelé une seule fois au chargement du projet.
-     * Idéal pour configurer la grille initiale ou l'interface de debug.
+     * Appelé une seule fois au chargement du projet ou lors d'un Reset (Touche R).
      * @param {Object} engine - L'instance du moteur principal (Core)
+     * @param {boolean} dataLoaded - True si une sauvegarde vient d'être chargée.
      */
-    onInit(engine) {
-        // engine.debugDisplay.setCustomData('Projet', 'Mon Nouveau Projet');
-        // engine.grid.setCell(0, 0, { color: '#ff0000' });
+    onInit(engine, dataLoaded) {
+        // Configuration de l'UI
+        // engine.debugDisplay.setCustomData('Projet', 'Nouveau Projet');
+
+        // Si aucune sauvegarde n'a été chargée, on génère le monde par défaut
+        if (!dataLoaded) {
+            // engine.grid.setCell(0, 0, { type: 'WALL' });
+        }
     }
 
     /**
-     * Appelé à chaque frame avant le rendu.
-     * C'est ici que réside la logique de mise à jour (simulation, inputs).
-     * @param {number} dt - Le delta time en secondes depuis la dernière frame
-     * @param {Object} engine - L'instance du moteur principal (Core)
+     * Appelé à chaque frame (60 fois par seconde en général).
+     * Gère UNIQUEMENT les interactions utilisateur (clavier/souris).
+     * @param {Object} engine - L'instance du moteur principal
      */
-    onTick(dt, engine) {
-        // const { inputManager, camera, grid, colorPalette } = engine;
+    handleInputs(engine) {
+        // const { inputManager, camera, grid, cellSize } = engine;
         // const { mouseState } = inputManager;
 
-        // Exemple: dessiner au clic
-        // if (mouseState.isDown && mouseState.isEditing) {
+        // if (mouseState.isDown && !mouseState.shiftKey) {
         //     const worldPos = camera.screenToWorld(mouseState.screenX, mouseState.screenY);
-        //     const cellX = Math.floor(worldPos.x / engine.cellSize);
-        //     const cellY = Math.floor(worldPos.y / engine.cellSize);
-        //     grid.setCell(cellX, cellY, { color: colorPalette.selectedColor || '#fff' });
+        //     const cellX = Math.floor(worldPos.x / cellSize);
+        //     const cellY = Math.floor(worldPos.y / cellSize);
+        //     grid.setCell(cellX, cellY, { color: '#ff0000' });
         // }
     }
 
     /**
+     * Appelé par le TimeControl. Peut tourner à une vitesse différente du rendu.
+     * C'est ici que réside la simulation physique ou les automates cellulaires.
+     * @param {number} dt - L'intervalle de tick (tickInterval)
+     * @param {Object} engine - L'instance du moteur principal
+     */
+    onTick(dt, engine) {
+        // 1. Récupérer les cellules actives
+        // 2. Appliquer les règles
+        // 3. Mettre à jour la grille
+    }
+
+    /**
      * Appelé à chaque frame après le rendu de la grille par le moteur.
-     * Utilisez cette méthode UNIQUEMENT si vous avez besoin de dessiner des éléments
-     * personnalisés par-dessus la grille (UI, curseurs spéciaux, effets).
-     * @param {CanvasRenderingContext2D} ctx - Le contexte du canvas (déjà transformé par la caméra)
-     * @param {Object} camera - L'instance de la caméra (pour les conversions d'espace si besoin)
+     * @param {CanvasRenderingContext2D} ctx - Le contexte du canvas (déjà transformé)
+     * @param {Object} camera - L'instance de la caméra
      */
     onRender(ctx, camera) {
-        // ctx.fillStyle = 'red';
-        // ctx.fillRect(0, 0, 10, 10);
+        // Dessiner des effets spéciaux, de la lumière ou des UI par-dessus la grille
     }
 }
