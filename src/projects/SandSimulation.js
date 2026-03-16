@@ -9,6 +9,7 @@ export class SandSimulation {
             EMBER: { name: 'Feu', color: '#ff7800', type: 'EMBER', density: 1 },
             STEAM: { name: 'Vapeur', color: '#dddddd', type: 'GAS', density: -1, life: 100 },
             GUNPOWDER: { name: 'Poudre', color: '#444444', type: 'SAND', density: 2.5 },
+            WATER_GEN: { name: 'Source Eau', color: '#0033cc', type: 'GENERATOR', generates: 'WATER', density: Infinity },
             VOID: { name: 'Vide', color: '#1a1a1a', type: 'KILL', density: 0 }
         };
 
@@ -20,6 +21,7 @@ export class SandSimulation {
             { color: this.materials.STONE.color, name: 'Pierre' },
             { color: this.materials.WOOD.color, name: 'Bois' },
             { color: this.materials.STEAM.color, name: 'Vapeur' },
+            { color: this.materials.WATER_GEN.color, name: 'Source Eau' },
             { color: this.materials.VOID.color, name: 'Vide' },
             null
         ];
@@ -43,8 +45,8 @@ export class SandSimulation {
                 engine.grid.setCell(-20, y, { ...this.materials.STONE });
                 engine.grid.setCell(20, y, { ...this.materials.STONE });
             }
-            for (let x = -100; x <= 100; x++) {
-                engine.grid.setCell(x, 50, { ...this.materials.VOID });
+            for (let x = -200; x <= 200; x++) {
+                engine.grid.setCell(x, 100, { ...this.materials.VOID });
             }
         }
     }
@@ -254,6 +256,16 @@ export class SandSimulation {
                     if (canDisplace(dLeft, data)) { swap(x - dir, y + 1); }
                     else if (canDisplace(dRight, data)) { swap(x + dir, y + 1); }
                 }
+            }
+            if (data.type === 'GENERATOR') {
+                const down = engine.grid.getCell(x, y + 1);
+
+                if (!down) {
+                    const materialToSpawn = this.materials[data.generates];
+                    engine.grid.setCell(x, y + 1, { ...materialToSpawn, tickCounter: 0 });
+                    updatedCells.add(`${x},${y + 1}`);
+                }
+                continue;
             }
             else if (data.type === 'WATER' || data.type === 'LAVA') {
                 if (data.type === 'LAVA') {
