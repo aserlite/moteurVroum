@@ -46,7 +46,7 @@ export class Core {
     handleKeyDown(e) {
         if (e.key === 'd' || e.key === 'D') {
             this.uiVisible = !this.uiVisible;
-            this.debugDisplay.enabled = this.uiVisible; 
+            this.debugDisplay.enabled = this.uiVisible;
         }
         if (e.key === 'c' || e.key === 'C') {
             this.colorPalette.toggle();
@@ -110,6 +110,12 @@ export class Core {
     resetProject() {
         if (!this.project) return;
         
+        const confirmReset = window.confirm("Voulez-vous vraiment réinitialiser ?\nTout votre dessin sera perdu.");
+        
+        if (!confirmReset) {
+            return;
+        }
+
         this.grid.chunks.clear();
         
         this.storageManager.clear();
