@@ -3,7 +3,7 @@ export class Camera {
         this.x = window.innerWidth / 2;
         this.y = window.innerHeight / 2;
         this.zoom = 1;
-        this.minZoom = 0.25;
+        this.minZoom = 0.1;
         this.maxZoom = 10;
     }
 
