@@ -1,6 +1,6 @@
 export class TimeControl {
     constructor() {
-        this.isPaused = false;
+        this.isPaused = true; // CHANGEMENT ICI: le jeu commence en pause par défaut
         this.targetTPS = 60;
         this.tickInterval = 1 / this.targetTPS;
         this.accumulator = 0;
@@ -120,7 +120,7 @@ export class TimeControl {
 
     getBounds(canvasWidth, canvasHeight) {
         const boxWidth = 200;
-        const boxHeight = 90; // Agrandi pour faire de la place au slider
+        const boxHeight = 90; 
         const padding = 10;
         const boxX = canvasWidth - boxWidth - padding;
         const boxY = canvasHeight - boxHeight - padding;
