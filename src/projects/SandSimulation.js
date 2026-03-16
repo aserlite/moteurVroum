@@ -1,18 +1,23 @@
 export class SandSimulation {
     constructor() {
         this.materials = {
-            SAND: { color: '#e6c27a', type: 'SAND', density: 2 },
+            SAND: { color: '#e6c27a', type: 'SAND', density: 3 },
             WATER: { color: '#4da6ff', type: 'WATER', density: 1, spreadRate: 5 },
             STONE: { color: '#888888', type: 'SOLID', density: Infinity },
-            WOOD: { color: '#8b5a2b', type: 'SOLID', density: Infinity }
+            WOOD: { color: '#8b5a2b', type: 'WOOD', density: Infinity, flammability: 0.1, health: 100 },
+            LAVA: { color: '#ff4500', type: 'LAVA', density: 2, spreadRate: 2, flowDelay: 3 },
+            EMBER: { color: '#ff7800', type: 'EMBER', density: 1 },
+            VOID: { color: '#1a1a1a', type: 'KILL', density: 0 }
         };
 
         this.paletteColors = [
             this.materials.SAND.color,
             this.materials.WATER.color,
+            this.materials.LAVA.color,
             this.materials.STONE.color,
             this.materials.WOOD.color,
-            null // Gomme
+            this.materials.VOID.color,
+            null
         ];
     }
 
@@ -27,12 +32,15 @@ export class SandSimulation {
         engine.colorPalette.selectedColor = this.paletteColors[0];
 
         if (!dataLoaded) {
-            for (let x = -10; x <= 10; x++) {
-                engine.grid.setCell(x, 10, { color: this.materials.STONE.color, type: 'SOLID', density: Infinity });
+            for (let x = -20; x <= 20; x++) {
+                engine.grid.setCell(x, 10, { ...this.materials.STONE });
             }
-            for (let y = 0; y <= 10; y++) {
-                engine.grid.setCell(-10, y, { color: this.materials.STONE.color, type: 'SOLID', density: Infinity });
-                engine.grid.setCell(10, y, { color: this.materials.STONE.color, type: 'SOLID', density: Infinity });
+            for (let y = -20; y <= 10; y++) {
+                engine.grid.setCell(-20, y, { ...this.materials.STONE });
+                engine.grid.setCell(20, y, { ...this.materials.STONE });
+            }
+            for (let x = -100; x <= 100; x++) {
+                engine.grid.setCell(x, 50, { ...this.materials.VOID });
             }
         }
     }
@@ -42,7 +50,7 @@ export class SandSimulation {
         for (const mat of Object.values(this.materials)) {
             if (mat.color === color) return mat;
         }
-        return { color: color, type: 'SAND', density: 2 };
+        return { color: color, type: 'SAND', density: 3 };
     }
 
     handleInputs(engine) {
@@ -66,9 +74,9 @@ export class SandSimulation {
                         if (colorPalette.selectedColor === null) {
                             grid.setCell(centerX + dx, centerY + dy, null);
                         } else if (!grid.getCell(centerX + dx, centerY + dy)) {
-                            const chance = material.type === 'SOLID' ? 1.0 : 0.3;
+                            const chance = (material.type === 'SOLID' || material.type === 'WOOD') ? 1.0 : 0.3;
                             if (Math.random() <= chance) {
-                                grid.setCell(centerX + dx, centerY + dy, { ...material });
+                                grid.setCell(centerX + dx, centerY + dy, { ...material, tickCounter: 0 });
                             }
                         }
                     }
@@ -83,7 +91,7 @@ export class SandSimulation {
 
         for (const chunk of engine.grid.chunks.values()) {
             for (const [localKey, data] of chunk.cells.entries()) {
-                if (data.type !== 'SOLID') {
+                if (data.type !== 'SOLID' && data.type !== 'KILL') {
                     const [localX, localY] = localKey.split(',').map(Number);
                     cellsToUpdate.push({
                         x: chunk.x * 32 + localX,
@@ -104,8 +112,13 @@ export class SandSimulation {
             const { x, y, data } = cell;
 
             const swap = (nx, ny) => {
-                updatedCells.add(`${nx},${ny}`);
                 const targetData = engine.grid.getCell(nx, ny);
+                if (targetData && targetData.type === 'KILL') {
+                    engine.grid.setCell(x, y, null);
+                    updatedCells.add(`${x},${y}`);
+                    return;
+                }
+                updatedCells.add(`${nx},${ny}`);
                 engine.grid.setCell(nx, ny, data);
                 engine.grid.setCell(x, y, targetData);
                 cell.x = nx;
@@ -113,65 +126,102 @@ export class SandSimulation {
             };
 
             const canDisplace = (targetData, sourceData) => {
-                if (!targetData) return true; // C'est vide
-                if (targetData.type === 'SOLID') return false; // C'est dur
-                return targetData.density < sourceData.density; // C'est plus léger
+                if (!targetData) return true;
+                if (targetData.type === 'SOLID' || targetData.type === 'WOOD') return false;
+                return targetData.density < sourceData.density;
             };
 
-            if (data.type === 'SAND') {
-                const down = engine.grid.getCell(x, y + 1);
-                
-                if (canDisplace(down, data)) {
-                    swap(x, y + 1);
-                } else {
-                    const dir = Math.random() > 0.5 ? 1 : -1;
-                    const downLeft = engine.grid.getCell(x - dir, y + 1);
-                    const downRight = engine.grid.getCell(x + dir, y + 1);
-
-                    if (canDisplace(downLeft, data)) {
-                        swap(x - dir, y + 1);
-                    } else if (canDisplace(downRight, data)) {
-                        swap(x + dir, y + 1);
+            if (data.type === 'EMBER') {
+                data.health = (data.health || 100) - 1;
+                if (data.health <= 0) {
+                    engine.grid.setCell(x, y, null);
+                    continue;
+                }
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        if (dx === 0 && dy === 0) continue;
+                        const neighbor = engine.grid.getCell(x + dx, y + dy);
+                        if (neighbor && neighbor.type === 'WOOD' && Math.random() < neighbor.flammability) {
+                            neighbor.type = 'EMBER';
+                            neighbor.color = this.materials.EMBER.color;
+                            neighbor.health = this.materials.WOOD.health;
+                        }
                     }
                 }
             }
-            else if (data.type === 'WATER') {
+
+            let interacted = false;
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const neighbor = engine.grid.getCell(x + dx, y + dy);
+                    if (!neighbor) continue;
+
+                    if (data.type === 'LAVA') {
+                        if (neighbor.type === 'WATER') {
+                            engine.grid.setCell(x, y, { ...this.materials.STONE });
+                            interacted = true; break;
+                        }
+                        if (neighbor.type === 'WOOD' && Math.random() < 0.5) {
+                            neighbor.type = 'EMBER';
+                            neighbor.color = this.materials.EMBER.color;
+                            neighbor.health = this.materials.WOOD.health;
+                        }
+                    }
+                }
+                if (interacted) break;
+            }
+            if (interacted) continue;
+
+
+            if (data.type === 'SAND') {
                 const down = engine.grid.getCell(x, y + 1);
-                
+                if (canDisplace(down, data)) { swap(x, y + 1); }
+                else {
+                    const dir = Math.random() > 0.5 ? 1 : -1;
+                    const dLeft = engine.grid.getCell(x - dir, y + 1);
+                    const dRight = engine.grid.getCell(x + dir, y + 1);
+                    if (canDisplace(dLeft, data)) { swap(x - dir, y + 1); }
+                    else if (canDisplace(dRight, data)) { swap(x + dir, y + 1); }
+                }
+            }
+            else if (data.type === 'WATER' || data.type === 'LAVA') {
+                if (data.type === 'LAVA') {
+                    data.tickCounter = (data.tickCounter || 0) + 1;
+                    if (data.tickCounter % data.flowDelay !== 0) continue;
+                }
+
+                const down = engine.grid.getCell(x, y + 1);
                 if (canDisplace(down, data)) {
                     swap(x, y + 1);
                 } else {
                     const dir = Math.random() > 0.5 ? 1 : -1;
-                    const downSide1 = engine.grid.getCell(x - dir, y + 1);
-                    const downSide2 = engine.grid.getCell(x + dir, y + 1);
+                    const dSide1 = engine.grid.getCell(x - dir, y + 1);
+                    const dSide2 = engine.grid.getCell(x + dir, y + 1);
 
-                    if (canDisplace(downSide1, data)) {
-                        swap(x - dir, y + 1);
-                    } else if (canDisplace(downSide2, data)) {
-                        swap(x + dir, y + 1);
-                    } else {
-                        let targetX = x;
+                    if (canDisplace(dSide1, data)) { swap(x - dir, y + 1); }
+                    else if (canDisplace(dSide2, data)) { swap(x + dir, y + 1); }
+                    else {
+                        let moved = false;
                         for (let i = 1; i <= data.spreadRate; i++) {
-                            const sideCell = engine.grid.getCell(x + dir * i, y);
-                            if (canDisplace(sideCell, data)) {
-                                targetX = x + dir * i;
+                            const nextCell = engine.grid.getCell(x + dir * i, y);
+                            if (canDisplace(nextCell, data)) {
+                                swap(x + dir * i, y);
+                                moved = true;
+                                break;
                             } else {
                                 break;
                             }
                         }
-                        if (targetX !== x) {
-                            swap(targetX, y);
-                        } else {
+                        if (!moved) {
                             for (let i = 1; i <= data.spreadRate; i++) {
-                                const sideCell = engine.grid.getCell(x - dir * i, y);
-                                if (canDisplace(sideCell, data)) {
-                                    targetX = x - dir * i;
+                                const nextCell = engine.grid.getCell(x - dir * i, y);
+                                if (canDisplace(nextCell, data)) {
+                                    swap(x - dir * i, y);
+                                    break;
                                 } else {
                                     break;
                                 }
-                            }
-                            if (targetX !== x) {
-                                swap(targetX, y);
                             }
                         }
                     }
