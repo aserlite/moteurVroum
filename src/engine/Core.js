@@ -6,6 +6,7 @@ import { Grid, CHUNK_SIZE } from './Grid.js';
 import { TimeControl } from './TimeControl.js';
 import { Profiler } from './Profiler.js';
 import { StorageManager } from './StorageManager.js';
+import { TextureManager } from './TextureManager.js';
 
 export class Core {
     constructor(canvasId) {
@@ -21,6 +22,7 @@ export class Core {
         this.timeControl = new TimeControl();
         this.profiler = new Profiler();
         this.storageManager = new StorageManager(this);
+        this.textureManager = new TextureManager();
         
         this.cellSize = 32;
 
@@ -86,6 +88,10 @@ export class Core {
     }
 
     loadProject(project, projectName, initialGridData = null) {
+        if (this.project && typeof this.project.destroy === 'function') {
+            this.project.destroy();
+        }
+
         this.project = project;
         this.projectName = projectName;
         
@@ -166,6 +172,10 @@ export class Core {
             cancelAnimationFrame(this.animationFrameId);
         }
 
+        if (this.project && typeof this.project.destroy === 'function') {
+            this.project.destroy();
+        }
+
         window.removeEventListener('resize', this.resize);
         window.removeEventListener('keydown', this.handleKeyDown);
         this.inputManager.destroy();
@@ -213,6 +223,14 @@ export class Core {
                     const cellX = chunk.x * CHUNK_SIZE + localX;
                     const cellY = chunk.y * CHUNK_SIZE + localY;
                     
+                    if (data.texture) {
+                        const img = this.textureManager.getTexture(data.texture);
+                        if (img) {
+                             this.ctx.drawImage(img, cellX * this.cellSize, cellY * this.cellSize, this.cellSize, this.cellSize);
+                             continue;
+                        }
+                    }
+
                     this.ctx.fillStyle = data.color || '#fff';
                     this.ctx.fillRect(cellX * this.cellSize, cellY * this.cellSize, this.cellSize, this.cellSize);
                 }
@@ -242,7 +260,7 @@ export class Core {
         }
 
         const { mouseState } = this.inputManager;
-        const selectedToolName = this.colorPalette.selectedColor ? this.colorPalette.getColorName(this.colorPalette.selectedColor) : 'Gomme';
+        const selectedToolName = this.colorPalette.selectedColor ? this.colorPalette.selectedColor : 'Gomme';
         this.debugDisplay.setCustomData('Outil', selectedToolName);
 
         if (mouseState.isDown && mouseState.isEditing) {
@@ -253,7 +271,7 @@ export class Core {
             if (this.colorPalette.selectedColor === null) {
                 this.grid.setCell(cellX, cellY, null);
             } else {
-                this.grid.setCell(cellX, cellY, { color: this.colorPalette.getColorValue(this.colorPalette.selectedColor) });
+                this.grid.setCell(cellX, cellY, { color: this.colorPalette.selectedColor });
             }
         }
     }
