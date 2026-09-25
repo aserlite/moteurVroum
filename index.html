@@ -7,11 +7,13 @@
     <link rel="icon" type="image/svg+xml" href="/icon.webp" />
     <style>
       :root {
-        --bg-color: #121212;
-        --surface-color: #1e1e1e;
-        --primary-color: #00ff88;
-        --text-color: #e0e0e0;
-        --border-color: #333;
+        --bg-color: #101312;
+        --surface-color: #181d1b;
+        --surface-raised: #202724;
+        --primary-color: #c7f36b;
+        --text-color: #e8ece7;
+        --muted-color: #9aa69e;
+        --border-color: #354039;
       }
 
       html, body {
@@ -20,87 +22,131 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
-        background-color: var(--bg-color);
+        background: var(--bg-color);
         color: var(--text-color);
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-family: 'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', sans-serif;
       }
 
       #app {
         width: 100%;
         height: 100%;
+        box-sizing: border-box;
         display: flex;
         justify-content: center;
         align-items: center;
-        background: radial-gradient(circle at center, #2a2a2a 0%, #121212 100%);
+        padding: clamp(1.25rem, 4vw, 4rem);
+        background-color: var(--bg-color);
+        background-image: linear-gradient(rgba(199, 243, 107, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(199, 243, 107, 0.035) 1px, transparent 1px);
+        background-size: 42px 42px;
       }
 
       #project-selector {
         background-color: var(--surface-color);
-        padding: 3rem;
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-        text-align: center;
+        padding: clamp(1.5rem, 4vw, 3.25rem);
+        border-radius: 4px;
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+        text-align: left;
         border: 1px solid var(--border-color);
-        max-width: 600px;
-        width: 90%;
+        max-width: 680px;
+        width: min(100%, 680px);
+        animation: selector-in 420ms ease-out both;
+      }
+
+      .selector-header {
+        display: grid;
+        gap: 0.7rem;
       }
 
       #project-selector h1 {
-        margin-top: 0;
-        margin-bottom: 2rem;
-        font-size: 2.5rem;
-        font-weight: 300;
-        letter-spacing: 2px;
+        margin: 0;
+        font-size: clamp(2rem, 6vw, 3.15rem);
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        line-height: 0.95;
         color: #fff;
       }
 
       #project-selector h1 span {
         color: var(--primary-color);
-        font-weight: 600;
+        font-weight: 700;
+      }
+
+      .selector-description {
+        margin: 0;
+        color: var(--muted-color);
+        font-size: 0.95rem;
+      }
+
+      .selector-rule {
+        height: 1px;
+        margin: 2rem 0 1rem;
+        background: var(--border-color);
       }
 
       #project-list {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.55rem;
       }
 
       #project-list button {
+        display: grid;
+        grid-template-columns: 2rem 1fr auto;
+        align-items: center;
+        gap: 0.75rem;
+        min-width: 0;
         background: transparent;
         color: var(--text-color);
         border: 1px solid var(--border-color);
-        padding: 1.2rem;
-        font-size: 1.1rem;
-        border-radius: 8px;
+        padding: 0.9rem 1rem;
+        font: inherit;
+        font-size: 0.95rem;
+        text-align: left;
+        border-radius: 2px;
         cursor: pointer;
-        transition: all 0.3s ease;
-        position: relative;
+        transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+      }
+
+      .project-index {
+        color: var(--muted-color);
+        font-size: 0.7rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .project-name {
         overflow: hidden;
-      }
-
-      #project-list button::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: var(--primary-color);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        z-index: 0;
-      }
-
-      #project-list button span {
-        position: relative;
-        z-index: 1;
+        font-weight: 600;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
       #project-list button:hover {
         border-color: var(--primary-color);
-        color: #fff;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 255, 136, 0.2);
+        background: var(--surface-raised);
+        transform: translateX(3px);
+      }
+
+      #project-list button:hover .project-index,
+      #project-list button:hover .project-arrow {
+        color: var(--primary-color);
+      }
+
+      #project-list button:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 3px;
+      }
+
+      .project-arrow {
+        color: var(--muted-color);
+        font-size: 1.15rem;
+        line-height: 1;
+      }
+
+      @media (max-width: 560px) {
+        #project-list {
+          grid-template-columns: 1fr;
+        }
       }
 
       canvas {

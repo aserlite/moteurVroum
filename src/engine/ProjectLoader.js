@@ -43,23 +43,33 @@ export class ProjectLoader {
         }
 
         this.appElement.innerHTML = `
-            <div id="project-selector">
-                <h1>Moteur<span>Vroum</span></h1>
-                <p style="color: #888; margin-bottom: 2rem;">Sélectionnez un projet à lancer</p>
-                <div id="project-list"></div>
-            </div>
+            <main id="project-selector">
+                <header class="selector-header">
+                    <h1>Moteur<span>Vroum</span></h1>
+                    <p class="selector-description">Sélectionnez une expérience à lancer.</p>
+                </header>
+                <div class="selector-rule" aria-hidden="true"></div>
+                <div id="project-list" aria-label="Projets disponibles"></div>
+            </main>
         `;
 
         const projectList = this.appElement.querySelector('#project-list');
 
+        let projectIndex = 0;
         for (const path in this.projectModules) {
             const fileName = path.split('/').pop();
             const projectName = fileName.replace('.js', '');
 
             const button = document.createElement('button');
-            button.innerHTML = `<span>${projectName}</span>`;
+            button.type = 'button';
+            button.innerHTML = `
+                <span class="project-index">${String(projectIndex + 1).padStart(2, '0')}</span>
+                <span class="project-name">${projectName}</span>
+                <span class="project-arrow" aria-hidden="true">↗</span>
+            `;
             button.onclick = () => this.launchProject(path, projectName, null);
             projectList.appendChild(button);
+            projectIndex += 1;
         }
     }
 
