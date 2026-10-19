@@ -1,7 +1,3 @@
-/**
- * Projet : Doom (Raycasting 3D)
- * Concept : Moteur 3D temps réel généré à partir de la grille 2D.
- */
 export class Doom {
     constructor() {
         this.materials = {

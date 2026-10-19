@@ -1,7 +1,3 @@
-/**
- * Projet : La Guerre des Nanobots (Guerre de Territoire Haute Performance)
- * Concept : Seules les têtes chercheuses sont calculées. Le territoire généré est passif.
- */
 export class NanoWar {
     constructor() {
         this.materials = {

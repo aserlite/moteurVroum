@@ -1,7 +1,3 @@
-/**
- * Projet : Spectre Audio
- * Concept : L'audio du micro génère des particules
- */
 export class Audio {
     constructor() {
         this.audioCtx = null;

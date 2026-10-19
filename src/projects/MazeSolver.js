@@ -1,7 +1,3 @@
-/**
- * Projet : Le Labyrinthe Vivant
- * Concept : Génération procédurale d'un labyrinthe et résolution par Automate Cellulaire.
- */
 export class MazeSolver {
     constructor() {
         this.materials = {

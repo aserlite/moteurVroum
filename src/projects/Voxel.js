@@ -1,7 +1,3 @@
-/**
- * Projet : Voxel
- * Concept : Rendu de paysages avec élévation via Raycasting
- */
 export class Voxel {
     constructor() {
         this.materials = {

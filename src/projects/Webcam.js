@@ -1,7 +1,3 @@
-/**
- * Projet : Webcam
- * Concept : Traitement d'image avancé et effets visuels en temps réel.
- */
 export class Webcam {
     constructor() {
         this.video = document.createElement('video');
